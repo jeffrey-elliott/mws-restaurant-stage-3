@@ -83,9 +83,13 @@ self.addEventListener('fetch', function(event) {
         }
 
         if(requestUrl.searchParams.get('is_favorite')){
-          id = parseInt(requestUrl.searchParams.get('restaurant_id'),10);
+
+          id = requestUrl.pathname.replace(/\//g, '').replace('restaurants','');
+
           console.log('making a call for favorites', event, requestUrl, id);
-          return ;//this is handled by the button...
+
+          //UI and IDB changes are handled on the button ...
+          return  handleRestaurant(event,requestUrl,id);
         }
 
         return handleRestaurant(event,requestUrl,id);
