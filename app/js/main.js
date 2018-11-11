@@ -3,13 +3,23 @@
 
 
 
+var dbPromise = idb.open('db-udacity-mws-rr', 1, function(upgradeDb) {
+
+    if (!upgradeDb.objectStoreNames.contains('restaurants')) {
+      let rr = upgradeDb.createObjectStore('restaurants', {keyPath: 'id'});
+      let rv = upgradeDb.createObjectStore('reviews', {keyPath: 'id'})
+                .createIndex('restaurant_id', 'restaurant_id');
+    }
+
+  });
+
+
+
 let restaurants,
   neighborhoods,
   cuisines;
 var map;
 var markers = [];
-
-
 
 /**
  * Fetch all neighborhoods and set their HTML.
@@ -203,10 +213,13 @@ function handleClick() {
     return response.json();
   }).then(updatedRestaurant => {
     console.log('update res', updatedRestaurant);
-    DBHelper.updateRestaurant(updatedRestaurant);
 
+
+
+   updateRestaurant(updatedRestaurant);
 
     this.setAttribute('aria-pressed', !isFavorite);
+
   });
 }
 
@@ -225,3 +238,12 @@ function handleClick() {
 
   return el;
 }
+
+  function updateRestaurant(restaurant){
+    dbPromise.then(function (db) {
+          const tx = db.transaction("restaurants", "readwrite");
+          const store = tx.objectStore("restaurants");
+          store.put({id: restaurant.id, data: restaurant});
+          return restaurant;
+      });
+  }

@@ -1,4 +1,5 @@
 /*jshint esversion: 6 */
+
 import idb from 'idb';
 
 var dbPromise = idb.open('db-udacity-mws-rr', 1, function(upgradeDb) {
@@ -28,11 +29,14 @@ self.addEventListener('install', function(event) {
         '/img/star.svg',
         '/js/dbhelper.js',
         '/js/main.js',
-        '/js/restaurant_info.js'
+        '/js/restaurant_info.js',
+        '/js/idb.js'
       ]);
     })
   );
 });
+
+
 
 self.addEventListener('activate', function (event) {
   event.waitUntil(caches.keys().then(function (cacheNames) {
@@ -81,7 +85,7 @@ self.addEventListener('fetch', function(event) {
         if(requestUrl.searchParams.get('is_favorite')){
           id = parseInt(requestUrl.searchParams.get('restaurant_id'),10);
           console.log('making a call for favorites', event, requestUrl, id);
-          return; //this is handled by the button...
+          return ;//this is handled by the button...
         }
 
         return handleRestaurant(event,requestUrl,id);

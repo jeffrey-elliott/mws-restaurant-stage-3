@@ -26,19 +26,6 @@ gulp.task('sw', () => {
     .pipe(gulp.dest("dist/"));
 });
 
-gulp.task("dbhelper", () => {
-  const b = browserify({
-    debug: true
-  });
-
-  return b
-    .transform(babelify)
-    .require("app/js/dbhelper.js", { entry: true })
-    .bundle()
-    .pipe(source("dbhelper.js"))
-    .pipe(gulp.dest("dist/js/"));
-});
-
 gulp.task('test-args', function() {
   console.log(process.argv);
   console.log(process.argv[4]);
@@ -66,7 +53,7 @@ gulp.task('start-service', function (cb) {
 })
 
 gulp.task('files', function() {
-	gulp.src(['app/**/*', '!app/index.html', '!app/restaurant.html','!app/sw.js', '!app/js/dbhelper.js'])
+	gulp.src(['app/**/*', '!app/index.html', '!app/restaurant.html', '!app/sw.js'])
 		.pipe(gulp.dest('dist/'));
 });
 
@@ -85,7 +72,7 @@ gulp.task('api-key', function() {
 });
 
 gulp.task('watch', function() {
-    gulp.watch('app/**/*', ['sw','dbhelper','files', 'api-key' ]);
+    gulp.watch('app/**/*', ['sw','files', 'api-key' ]);
 });
 
-gulp.task('default', ['sw','dbhelper','files', 'api-key', 'watch', 'start-service', 'start-app']);
+gulp.task('default', ['sw','files', 'api-key', 'watch', 'start-service', 'start-app']);

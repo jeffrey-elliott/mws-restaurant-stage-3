@@ -1,19 +1,5 @@
 /*jshint esversion: 6 */
 
-import idb from 'idb';
-
-let fetchedCuisines;
-let fetchedNeighborhoods;
-
-var dbPromise = idb.open('db-udacity-mws-rr', 1, function(upgradeDb) {
-
-    if (!upgradeDb.objectStoreNames.contains('restaurants')) {
-      let rr = upgradeDb.createObjectStore('restaurants', {keyPath: 'id'});
-      let rv = upgradeDb.createObjectStore('reviews', {keyPath: 'id'})
-                .createIndex('restaurant_id', 'restaurant_id');
-    }
-
-  });
 
 /**
  * Common database helper functions.
@@ -41,14 +27,7 @@ class DBHelper {
   }
 
 
-  static updateRestaurant(json){
-    return dbPromise.then(function (db) {
-          const tx = db.transaction("restaurants", "readwrite");
-          const store = tx.objectStore("restaurants");
-          store.put({id: id, data: json});
-          return json;
-      });
-  }
+
 
   /**
    * Fetch all restaurants.
