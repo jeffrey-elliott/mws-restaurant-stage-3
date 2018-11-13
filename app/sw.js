@@ -30,13 +30,14 @@ self.addEventListener('install', function(event) {
         '/js/dbhelper.js',
         '/js/main.js',
         '/js/restaurant_info.js',
-        '/js/idb.js'
+        '/js/idb.js',
+        'favicon.ico'
       ]);
     })
   );
+
+
 });
-
-
 
 self.addEventListener('activate', function (event) {
   event.waitUntil(caches.keys().then(function (cacheNames) {
@@ -49,10 +50,22 @@ self.addEventListener('activate', function (event) {
 });
 
 self.addEventListener('fetch', function(event) {
+  //console.log('fetch handler', event);
   const requestUrl = new URL(event.request.url);
+
+
 
   //if the request url has port 1337, we know it's an idb call.
   if(requestUrl.port == 1337){
+
+    if(event.request.method == "POST"){
+
+      var reviewUrl = new URL(event.request.referrer);
+
+      console.log('this was a post', event, event.request.referrer,parseInt(reviewUrl.searchParams.get('id'),10));
+
+      return handleReviews(event, requestUrl, parseInt(reviewUrl.searchParams.get('id'),10));
+    }
 
     let id = event.request.url.substring(event.request.url.lastIndexOf('/') + 1);
 
@@ -79,7 +92,7 @@ self.addEventListener('fetch', function(event) {
         if(requestUrl.searchParams.get('restaurant_id')){
           id = parseInt(requestUrl.searchParams.get('restaurant_id'),10);
           console.log('making a call for reviews', event, requestUrl, id);
-          return handleReview(event,requestUrl,id);
+          return handleReviews(event,requestUrl,id);
         }
 
         if(requestUrl.searchParams.get('is_favorite')){
@@ -92,6 +105,7 @@ self.addEventListener('fetch', function(event) {
           return  handleRestaurant(event,requestUrl,id);
         }
 
+        console.log('restaurant-call',id);
         return handleRestaurant(event,requestUrl,id);
       }
 
@@ -115,6 +129,7 @@ function handleIndex(event,requestUrl){
       return item || fetch(event.request)
 
           .then(function (response){
+            console.log('response-index', response);
             return response.json();
           })
 
@@ -132,7 +147,7 @@ function handleIndex(event,requestUrl){
           });
         });
     }).then(function(eventualResponse){
-      console.log('er', eventualResponse);
+      console.log('er-index', eventualResponse);
       return new Response(JSON.stringify(eventualResponse.data));
     })
   );
@@ -144,15 +159,14 @@ function handleRestaurant(event,requestUrl,id){
 
       var tx = db.transaction('restaurants', 'readonly');
       var store = tx.objectStore('restaurants');
-      return store.get(Number(id));
+      return store.get(parseInt(id,10));
 
     }).then(function(item) {
-
+      console.log('restaurant-item', item);
       return item || fetch(event.request)
 
-
           .then(function (response){
-            console.log('response', response);
+            console.log('response-restaurant', response);
             return response.json();
           })
           .then(function (json) {
@@ -164,35 +178,38 @@ function handleRestaurant(event,requestUrl,id){
           });
         });
     }).then(function(eventualResponse){
-      console.log('er', eventualResponse);
-      return new Response(JSON.stringify(eventualResponse.data));
+      console.log('er-restaurant', eventualResponse);
+
+      return new Response(JSON.stringify(eventualResponse));
     })
   );
 }
 
-
-
-function handleReview(event,requestUrl,id){
+function handleReviews(event,requestUrl,id){
   event.respondWith(
     dbPromise.then(function(db) {
 
       var tx = db.transaction('reviews', 'readonly');
       var store = tx.objectStore('reviews');
-      return store.get(id);
+      var idx = store.index("restaurant_id");
+      return idx.getAll(id);
 
-    }).then(function(item) {
-
-      return item || fetch(event.request)
+    }).then(function(items) {
+      console.log('response-items', items);
+      return items.length && items || fetch(event.request)
 
           .then(function (response){
-            console.log('response', response);
+            console.log('review-item', response);
             return response.json();
           })
           .then(function (json) {
+            console.log('putting reviews in idb',json);
             return dbPromise.then(function (db) {
               const tx = db.transaction("reviews", "readwrite");
               const store = tx.objectStore("reviews");
-              store.put({id: id, data: json});
+              json.forEach(review => {
+                store.put({id: review.id, "restaurant_id": review.restaurant_id, data: review});
+              });
               return json;
           });
         });
@@ -205,8 +222,6 @@ function handleReview(event,requestUrl,id){
     })
   );
 }
-
-
 
 function handleCache(event, requestUrl){
 
@@ -221,6 +236,7 @@ function handleCache(event, requestUrl){
       caches.match(event.request).then(function(resp) {
         return resp || fetch(event.request).then(function(response) {
           let responseClone = response.clone();
+
           caches.open(staticCacheName).then(function(cache) {
             cache.put(event.request, responseClone);
           });
@@ -250,3 +266,4 @@ function servePhoto(request) {
     });
   });
 }
+

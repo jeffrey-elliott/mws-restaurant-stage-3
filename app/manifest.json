@@ -1,14 +1,52 @@
 {
-  "short_name": "Udacity MWS",
   "name": "Udacity Restaurant Reviews Project 3",
-  "icons": [
-    { "src": "img/ico/icon-48.png", "type": "image/png", "sizes": "48x48" },
-    { "src": "img/ico/icon-96.png", "type": "image/png", "sizes": "96x96" },
-    { "src": "img/ico/icon-192.png", "type": "image/png", "sizes": "192x192" },
-    { "src": "img/ico/icon-512.png", "type": "image/png", "sizes": "512x512" }
-  ],
-  "start_url": "index.html",
-  "background_color": "#000000",
+  "short_name": "Udacity MWS",
   "theme_color": "#333333",
-  "display": "fullscreen"
+  "background_color": "#000000",
+  "display": "fullscreen",
+  "Scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "img/ico/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "img/ico/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "img/ico/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "img/ico/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "img/ico/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "img/ico/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "img/ico/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "img/ico/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "splash_pages": null
 }

@@ -268,7 +268,7 @@ nav h1 a {
 }
 
 
-#reviews-container {
+#reviews-container, #add-review {
   background-color: #fff;
 }
 
@@ -391,4 +391,23 @@ button.favorite-button {
 
 button.favorite-button[aria-pressed=true] {
   background-image: url(/img/favorite.svg);
+}
+
+#txtName, #taComments { width: 100%; }
+
+#fldRating {display: inline-block}
+
+#add-review {
+  padding: 15px;
+}
+
+.hide{
+  display:none;
+}
+
+.link-review-toggle{
+  padding-left: 10px;
+}
+.link {
+  cursor: pointer;
 }

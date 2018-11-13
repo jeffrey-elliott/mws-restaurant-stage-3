@@ -18,7 +18,7 @@ var dbPromise = idb.open('db-udacity-mws-rr', 1, function(upgradeDb) {
 let restaurants,
   neighborhoods,
   cuisines;
-var map;
+var newMap;
 var markers = [];
 
 /**
@@ -81,25 +81,47 @@ fillCuisinesHTML = (cuisines = self.cuisines) => {
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
  */
 document.addEventListener('DOMContentLoaded', (event) => {
+  initMap();
   fetchNeighborhoods();
   fetchCuisines();
 });
 
 /**
- * Initialize Google map, called from HTML.
+ * Initialize leaflet map, called from HTML.
  */
-window.initMap = () => {
-  let loc = {
-    lat: 40.722216,
-    lng: -73.987501
-  };
-  self.map = new google.maps.Map(document.getElementById('map'), {
-    zoom: 12,
-    center: loc,
-    scrollwheel: false
-  });
+initMap = () => {
+  self.newMap = L.map('map', {
+        center: [40.722216, -73.987501],
+        zoom: 12,
+        scrollWheelZoom: false
+      });
+  L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
+    mapboxToken: 'pk.eyJ1IjoiNXFvZW9tYW4yejBldDEya2xjbXoiLCJhIjoiY2pvZjAzc211MDQ3dzNwbno2ZDZmdnJqNCJ9.jIwBY86rwhQzLf3LDewluQ',
+    maxZoom: 18,
+    attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+      '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+      'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+    id: 'mapbox.streets'
+  }).addTo(newMap);
+
   updateRestaurants();
 }
+
+// /**
+//  * Initialize Google map, called from HTML.
+//  */
+// window.initMap = () => {
+//   let loc = {
+//     lat: 40.722216,
+//     lng: -73.987501
+//   };
+//   self.map = new google.maps.Map(document.getElementById('map'), {
+//     zoom: 12,
+//     center: loc,
+//     scrollwheel: false
+//   });
+//   updateRestaurants();
+// }
 
 /**
  * Update page and map for current restaurants.
@@ -187,19 +209,37 @@ createRestaurantHTML = (restaurant) => {
   return li;
 }
 
+
+
 /**
  * Add markers for current restaurants to the map.
  */
 addMarkersToMap = (restaurants = self.restaurants) => {
   restaurants.forEach(restaurant => {
     // Add marker to the map
-    const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.map);
-    google.maps.event.addListener(marker, 'click', () => {
-      window.location.href = marker.url;
-    });
+    const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.newMap);
+    marker.on("click", onClick);
+    function onClick() {
+      window.location.href = marker.options.url;
+    }
     self.markers.push(marker);
   });
+
 }
+
+// /**
+//  * Add markers for current restaurants to the map.
+//  */
+// addMarkersToMap = (restaurants = self.restaurants) => {
+//   restaurants.forEach(restaurant => {
+//     // Add marker to the map
+//     const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.map);
+//     google.maps.event.addListener(marker, 'click', () => {
+//       window.location.href = marker.url;
+//     });
+//     self.markers.push(marker);
+//   });
+// }
 
 //inspired by: https://alexandroperez.github.io/mws-walkthrough/?3.3.favorite-restaurants-using-accessible-toggle-buttons
 
@@ -207,7 +247,6 @@ function handleClick() {
   const isFavorite = this.getAttribute('aria-pressed') == 'true';
   const url = `${DBHelper.DATABASE_URL}/${this.dataset.id}/?is_favorite=${!isFavorite}`;
 
-  // TODO: use Background Sync to sync data with API server
   return fetch(url, {method: 'PUT'}).then(response => {
     if (!response.ok) return Promise.reject("Couldn't mark this restaurant as your favorite.");
     return response.json();

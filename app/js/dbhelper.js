@@ -71,8 +71,9 @@ class DBHelper {
 
 
   static fetchByUrl(fetchUrl, callback) {
+     console.log('calling-fetchByUrl ', fetchUrl);
     fetch(fetchUrl).then(function(response) {
-      console.log('response ', response);
+      console.log('response-fetchByUrl ', response);
       if(response.ok) {
         return response.json();
       }
@@ -211,16 +212,38 @@ class DBHelper {
   /**
    * Map marker for a restaurant.
    */
-  static mapMarkerForRestaurant(restaurant, map) {
-    const marker = new google.maps.Marker({
-      position: restaurant.latlng,
-      title: restaurant.name,
-      url: DBHelper.urlForRestaurant(restaurant),
-      map: map,
-      animation: google.maps.Animation.DROP}
-    );
+   static mapMarkerForRestaurant(restaurant, map) {
+
+    console.log('trying mapping',restaurant,map);
+    if(restaurant.data){
+      restaurant = restaurant.data;
+    }
+    // https://leafletjs.com/reference-1.3.0.html#marker
+    const marker = new L.marker([restaurant.latlng.lat, restaurant.latlng.lng],
+      {title: restaurant.name,
+      alt: restaurant.name,
+      url: DBHelper.urlForRestaurant(restaurant)
+      })
+      marker.addTo(newMap);
     return marker;
   }
+
+  // /**
+  //  * Map marker for a restaurant.
+  //  */
+  // static mapMarkerForRestaurant(restaurant, map) {
+  //   console.log('trying mapping',restaurant,map);
+
+  //   const marker = new google.maps.Marker({
+  //     position: restaurant.latlng,
+  //     title: restaurant.name,
+  //     url: DBHelper.urlForRestaurant(restaurant),
+  //     map: map,
+  //     animation: google.maps.Animation.DROP}
+  //   );
+
+  //   return marker;
+  // }
 
 
 

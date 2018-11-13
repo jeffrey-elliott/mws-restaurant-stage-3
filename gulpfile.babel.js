@@ -11,8 +11,6 @@ var source = require('vinyl-source-stream');
   https://github.com/thefinitemonkey/udacity-restaurant-reviews/blob/master/gulpfile.js
 */
 
-
-
 gulp.task('sw', () => {
   const b = browserify({
     debug: true
@@ -53,26 +51,26 @@ gulp.task('start-service', function (cb) {
 })
 
 gulp.task('files', function() {
-	gulp.src(['app/**/*', '!app/index.html', '!app/restaurant.html', '!app/sw.js'])
+	gulp.src(['app/**/*', '!app/sw.js'])
 		.pipe(gulp.dest('dist/'));
 });
 
-gulp.task('api-key', function() {
+// gulp.task('api-key', function() {
 
-	const key = process.argv[3];
+// 	const key = process.argv[3];
 
-  	gulp.src(['app/index.html'])
-  		.pipe(replace('<<api-key>>', key))
-  		.pipe(gulp.dest('dist/'));
+//   	gulp.src(['app/index.html'])
+//   		.pipe(replace('<<api-key>>', key))
+//   		.pipe(gulp.dest('dist/'));
 
-	gulp.src(['app/restaurant.html'])
-  		.pipe(replace('<<api-key>>', key))
-  		.pipe(gulp.dest('dist/'));
+// 	gulp.src(['app/restaurant.html'])
+//   		.pipe(replace('<<api-key>>', key))
+//   		.pipe(gulp.dest('dist/'));
 
-});
+// });
 
 gulp.task('watch', function() {
-    gulp.watch('app/**/*', ['sw','files', 'api-key' ]);
+    gulp.watch('app/**/*', ['sw','files']);
 });
 
-gulp.task('default', ['sw','files', 'api-key', 'watch', 'start-service', 'start-app']);
+gulp.task('default', ['sw','files', 'watch', 'start-service', 'start-app']);
