@@ -35,8 +35,6 @@ self.addEventListener('install', function(event) {
       ]);
     })
   );
-
-
 });
 
 self.addEventListener('activate', function (event) {
@@ -50,64 +48,44 @@ self.addEventListener('activate', function (event) {
 });
 
 self.addEventListener('fetch', function(event) {
-  //console.log('fetch handler', event);
+
   const requestUrl = new URL(event.request.url);
 
-
-
-  //if the request url has port 1337, we know it's an idb call.
+  //port 1337 means an API call ...
   if(requestUrl.port == 1337){
 
-    if(event.request.method == "POST"){
+    if(event.request.method == "POST" || event.request.method == "PUT"){
+      // console.log('trying to',event.request.method );
+      // return fetch(event.request)
+      // .then(fetchResponse => fetchResponse.json())
+      // .then(json => {
+      //   return json;
+      // });
 
-      var reviewUrl = new URL(event.request.referrer);
-
-      console.log('this was a post', event, event.request.referrer,parseInt(reviewUrl.searchParams.get('id'),10));
-
-      return handleReviews(event, requestUrl, parseInt(reviewUrl.searchParams.get('id'),10));
     }
 
-    let id = event.request.url.substring(event.request.url.lastIndexOf('/') + 1);
+    // if(event.request.method == "POST"){
+    //   let ref = new URL(event.request.referrer);
+    //   let id = ref.searchParams.get('id');
+    //   console.log('posted...trying to keep reviews up', event.request, id);
+    //   return handleReviews(event,requestUrl,parseInt(id,10));
+    // }
 
-    console.log('service call', requestUrl, id);
-
-    if(requestUrl.search[0] == '?'){
-
-
-
-      console.log('hey look, a token', requestUrl.search[0]);
-
-      console.log('but what token', requestUrl.searchParams.get('restaurant_id'), requestUrl.searchParams.get('is_favorite'));
-      console.log('id for reviews first?',parseInt(requestUrl.searchParams.get('restaurant_id'),10));
+    if(requestUrl.searchParams.get('restaurant_id')){
+      console.log('restaurant_id',requestUrl.searchParams.get('restaurant_id'));
+      let id = parseInt(requestUrl.searchParams.get('restaurant_id'),10);
+      return handleReviews(event,requestUrl,id);
     }
 
-    if(id == "restaurants"){ //index
-
-        return handleIndex(event,requestUrl);
-
-      } else { //restaurant, review, or favorite
-
-        id = parseInt(id,10);
-
-        if(requestUrl.searchParams.get('restaurant_id')){
-          id = parseInt(requestUrl.searchParams.get('restaurant_id'),10);
-          console.log('making a call for reviews', event, requestUrl, id);
-          return handleReviews(event,requestUrl,id);
+    if( event.request.url.indexOf("restaurant")){
+        let id = parseInt(requestUrl.searchParams.get('restaurant_id'),10);
+        if(!id){
+          id = -1;
         }
+        console.log('handling restaurants', id);
+        return handleRestaurant(event,requestUrl, id);
+    }
 
-        if(requestUrl.searchParams.get('is_favorite')){
-
-          id = requestUrl.pathname.replace(/\//g, '').replace('restaurants','');
-
-          console.log('making a call for favorites', event, requestUrl, id);
-
-          //UI and IDB changes are handled on the button ...
-          return  handleRestaurant(event,requestUrl,id);
-        }
-
-        console.log('restaurant-call',id);
-        return handleRestaurant(event,requestUrl,id);
-      }
 
   } else { //otherwise, use cache
 
@@ -117,42 +95,6 @@ self.addEventListener('fetch', function(event) {
 
 });
 
-function handleIndex(event,requestUrl){
-  event.respondWith(
-    dbPromise.then(function(db) {
-      var tx = db.transaction('restaurants', 'readonly');
-      var store = tx.objectStore('restaurants');
-      return store.get(-1);
-
-    }).then(function(item) {
-
-      return item || fetch(event.request)
-
-          .then(function (response){
-            console.log('response-index', response);
-            return response.json();
-          })
-
-          .then(function (json) {
-              return dbPromise.then(function (db) {
-                const tx = db.transaction("restaurants", "readwrite");
-                const store = tx.objectStore("restaurants");
-                store.put({id: -1, data: json});
-
-                json.forEach(function(restaurant){
-                  store.put({id: restaurant.id, data: restaurant});
-              });
-
-              return json;
-          });
-        });
-    }).then(function(eventualResponse){
-      console.log('er-index', eventualResponse);
-      return new Response(JSON.stringify(eventualResponse.data));
-    })
-  );
-}
-
 function handleRestaurant(event,requestUrl,id){
   event.respondWith(
     dbPromise.then(function(db) {
@@ -161,12 +103,11 @@ function handleRestaurant(event,requestUrl,id){
       var store = tx.objectStore('restaurants');
       return store.get(parseInt(id,10));
 
-    }).then(function(item) {
-      console.log('restaurant-item', item);
-      return item || fetch(event.request)
+    }).then(function(items) {
+
+      return (items && items.length) || fetch(event.request)
 
           .then(function (response){
-            console.log('response-restaurant', response);
             return response.json();
           })
           .then(function (json) {
@@ -177,10 +118,8 @@ function handleRestaurant(event,requestUrl,id){
               return json;
           });
         });
-    }).then(function(eventualResponse){
-      console.log('er-restaurant', eventualResponse);
-
-      return new Response(JSON.stringify(eventualResponse));
+    }).then(function(ultimateResponse){
+      return new Response(JSON.stringify(ultimateResponse));
     })
   );
 }
@@ -195,15 +134,15 @@ function handleReviews(event,requestUrl,id){
       return idx.getAll(id);
 
     }).then(function(items) {
-      console.log('response-items', items);
-      return items.length && items || fetch(event.request)
+
+      return (items.length && items) || fetch(event.request)
 
           .then(function (response){
-            console.log('review-item', response);
+            console.log('returning review response', response);
             return response.json();
           })
           .then(function (json) {
-            console.log('putting reviews in idb',json);
+
             return dbPromise.then(function (db) {
               const tx = db.transaction("reviews", "readwrite");
               const store = tx.objectStore("reviews");
@@ -213,13 +152,15 @@ function handleReviews(event,requestUrl,id){
               return json;
           });
         });
-    }).then(function(eventualResponse){
-      console.log('er-reviews', eventualResponse);
-      if(eventualResponse.id){
-        return new Response(JSON.stringify(eventualResponse.data));
+    }).then(function(ultimateResponse){
+      //https://github.com/thefinitemonkey/udacity-restaurant-reviews/blob/master/app/sw.js
+      if (ultimateResponse[0].data) {
+        // Need to transform the data to the proper format
+        const mapResponse = ultimateResponse.map(review => review.data);
+        return new Response(JSON.stringify(mapResponse));
       }
-      return new Response(JSON.stringify(eventualResponse));
-    })
+      return new Response(JSON.stringify(ultimateResponse));
+      })
   );
 }
 

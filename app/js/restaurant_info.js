@@ -10,7 +10,6 @@ var dbPromise = idb.open('db-udacity-mws-rr', 1, function(upgradeDb) {
 
   });
 
-
 let restaurant;
 var map;
 
@@ -24,8 +23,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
   window.addEventListener('online', function(e) {
     console.log('online');
+
     //look for idb reviews with pending == true
-     dbPromise.then(function(db) {
+    dbPromise.then(function(db) {
 
       var tx = db.transaction('reviews', 'readonly');
       var store = tx.objectStore('reviews');
@@ -35,30 +35,36 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }).then(function(reviews){
         const url = `${DBHelper.REVIEWS_URL}/`;
 
+        //ohhhhhh ... promise.all?
         reviews.forEach(review => {
           if(review.data.pending == true){
+            deleteReview(review);
             delete review.data.pending;
             return fetch(url, {method: 'POST', body: JSON.stringify(review.data)}).then(response => {
 
             if (!response.ok) return Promise.reject("Couldn't make your pending review live.");
               return response.json();
+            }).then(function(review){
+              return putReview(review);
             })
           }
-
         });
-    }).then(function(ultimateResponse){
-           dbPromise.then(function(db) {
-
-            var tx = db.transaction('reviews', 'readonly');
-            var store = tx.objectStore('reviews');
-
-            return store.getAll();
-          });
-    }).then(function(reviews){
-      fillReviewsHTML(reviews);
-    });
+    }).then(function(){
+      location.reload(true);
+    })
   });
 });
+
+function deleteReview(review){
+   dbPromise.then(function(db) {
+
+      var tx = db.transaction('reviews', 'readwrite');
+      var store = tx.objectStore('reviews');
+
+      return store.delete(review.id);
+
+    })
+}
 
 /**
  * Initialize leaflet map
@@ -105,14 +111,12 @@ fetchRestaurantFromURL = (callback) => {
     callback(error, null);
   } else {
       DBHelper.fetchRestaurantById(id, (error, restaurant) => {
-        console.log('frfh',id, error, restaurant);
         self.restaurant = restaurant;
         if (!restaurant) {
           console.error(error);
           return;
         }
 
-        console.log('ri-fetchRestaurantFromURL', self.restaurant);
         fillRestaurantHTML(restaurant);
         callback(null, restaurant);
         })
@@ -123,7 +127,6 @@ fetchRestaurantFromURL = (callback) => {
  * Create restaurant HTML and add it to the webpage
  */
 fillRestaurantHTML = (restaurant) => {
-  console.log('res HTML',restaurant);
   if(restaurant.data){
     restaurant = restaurant.data;
   }
@@ -157,12 +160,9 @@ fillRestaurantHTML = (restaurant) => {
   const cuisine = document.getElementById('restaurant-cuisine');
   cuisine.innerHTML = restaurant.cuisine_type;
 
-  // fill operating hours
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML(restaurant.operating_hours);
   }
-  // fill reviews
-  console.log('about to fill reviews',self.restaurant);
 
   DBHelper.fetchReviewsById(restaurant.id)
     .then(fillReviewsHTML);
@@ -216,8 +216,9 @@ function handleClick_ReviewToggle() {
  * Create all reviews HTML and add them to the webpage.
  */
 fillReviewsHTML = (reviews = self.reviews) => {
-  console.log('now attempting reviews', reviews);
+
   const container = document.getElementById('reviews-container');
+
   const title = document.createElement('h2');
   title.innerHTML = 'Reviews';
   title.setAttribute('class','res-reviews');
@@ -241,8 +242,9 @@ fillReviewsHTML = (reviews = self.reviews) => {
     return;
   }
   const ul = document.getElementById('reviews-list');
+
+  console.log('iterating reviews', reviews);
   for (let review of reviews) {
-    console.log('review-html', review);
     if(review.data){
       ul.appendChild(createReviewHTML(review.data));
     } else {
@@ -251,6 +253,21 @@ fillReviewsHTML = (reviews = self.reviews) => {
 
   };
   container.appendChild(ul);
+}
+
+function refillReviewsHTML(reviews){
+  console.log('refilling reviews', reviews);
+  const ul = document.getElementById('reviews-list');
+  while (ul.firstChild) {
+    ul.removeChild(ul.firstChild);
+  }
+  for (let review of reviews) {
+    if(review.data){
+      ul.appendChild(createReviewHTML(review.data));
+    } else {
+      ul.appendChild(createReviewHTML(review));
+    }
+  }
 }
 
 /**
@@ -272,7 +289,6 @@ createReviewHTML = (review) => {
 
 //https://digwp.com/2011/07/clean-up-weird-characters-in-database/
 handleNonsense = (value) => {
-  console.log('attempting to handle nonsense', value);
   let result = value;
 
   result = result.split('â€œ').join('“');
@@ -289,8 +305,6 @@ handleNonsense = (value) => {
 
 createReviewHeader320 = (review) => {
   let revDate = reviewDate(review);
-
-
 
   const div = document.createElement('div');
   div.setAttribute('class','rev-header-320');
@@ -384,7 +398,6 @@ getParameterByName = (name, url) => {
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-
 function wireSubmitButton(restaurant){
   let button = document.getElementById('submit-review');
 
@@ -398,55 +411,75 @@ function wireSubmitButton(restaurant){
 });
 }
 
-  function handleSubmit() {
-    const url = `${DBHelper.REVIEWS_URL}/`;
+function handleSubmit() {
+  const url = `${DBHelper.REVIEWS_URL}/`;
 
-    console.log('review being posted here:',url);
+  let name = document.getElementById('txtName').value;
+  let comments = document.getElementById('taComments').value;
+  let rating = document.querySelector('input[name="rating"]:checked').value;
 
-    let name = document.getElementById('txtName').value;
-    let comments = document.getElementById('taComments').value;
-    let rating = document.querySelector('input[name="rating"]:checked').value;
+  let data = {
+    "restaurant_id": parseInt(this.dataset.id,10),
+    "name": name,
+    "rating": parseInt(rating,10),
+    "comments": comments
+  }
 
-    let data = {
-      "restaurant_id": parseInt(this.dataset.id,10),
-      "name": name,
-      "rating": parseInt(rating,10),
-      "comments": comments
+  if(!window.navigator.onLine){
+      putReview(data);
+
+  } else {
+
+    return fetch(url, {method: 'POST', body: JSON.stringify(data)}).then(response => {
+      console.log('just posted by fetch', data, response);
+      if (!response.ok) return Promise.reject("Couldn't add your review.");
+      return response.json();
+    }).then(function(review){
+      putReview(review);
+      location.reload(true);
+    });
+
     }
+  }
 
-    console.log('about to fetch:', data);
-    if(!window.navigator.onLine){
-        putReview(data);
-        location.reload(true);
-    } else {
-
-      return fetch(url, {method: 'POST', body: JSON.stringify(data)}).then(response => {
-
-        if (!response.ok) return Promise.reject("Couldn't mark this restaurant as your favorite.");
-        return response.json();
-
-      }).then(newReview => {
-        console.log('new review', newReview);
-        putReview(newReview);
-        location.reload(true);
-      });
-    }
-
-  function putReview(review){
-    let tempId;
-
-    if(!review.id){
-      tempId = -review.restaurant_id;
-    }
-
+function putReview(review){
+  let tempId;
+  console.log('review as passed', review, review.restaurant_id, review.id);
+  if(!review.id){
+    tempId = -review.restaurant_id;
+  } else {
+    tempId = review.id;
+  }
     review.pending = !window.navigator.onLine; //if we're online, pending is false
+    console.log('putting review',review);
     dbPromise.then(function (db) {
         const tx = db.transaction("reviews", "readwrite");
         const store = tx.objectStore("reviews");
         let reviewData = {id: tempId, "restaurant_id": review.restaurant_id, data: review};
-        console.log('review data', reviewData);
+
         store.put(reviewData);
         return reviewData;
-      });
-  }
+    }).then(function(ultimateResponse){
+        if(!window.navigator.onLine){
+
+
+           dbPromise.then(function(db) {
+
+            var tx = db.transaction('reviews', 'readonly');
+            var store = tx.objectStore('reviews');
+            var idx = store.index("restaurant_id");
+            return idx.getAll(review.restaurant_id);
+
+          }).then(function(reviews){
+            refillReviewsHTML(reviews);
+
+            let link = document.getElementById('lnkViewReviews');
+            link.click();
+          });
+        }
+    })
+
+
+
+
 }

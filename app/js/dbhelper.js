@@ -1,6 +1,5 @@
 /*jshint esversion: 6 */
 
-
 /**
  * Common database helper functions.
  */
@@ -11,23 +10,14 @@ class DBHelper {
    * Change this to restaurants.json file location on your server.
    */
   static get DATABASE_URL() {
-    const port = 1337; // Change this to your server port
+    const port = 1337;
     return `http://localhost:${port}/restaurants`;
-
-    //const port = 8234; // Change this to your server port
-    //return `http://localhost:${port}/data/restaurants.json`;
   }
 
   static get REVIEWS_URL() {
-    const port = 1337; // Change this to your server port
+    const port = 1337;
     return `http://localhost:${port}/reviews`;
-
-    //const port = 8234; // Change this to your server port
-    //return `http://localhost:${port}/data/restaurants.json`;
   }
-
-
-
 
   /**
    * Fetch all restaurants.
@@ -51,7 +41,6 @@ class DBHelper {
     return DBHelper.fetchByUrl(fetchUrl, callback);
   }
 
-
   static fetchReviewsById(id) {
 
     let url = `${DBHelper.REVIEWS_URL}/?restaurant_id=${id}`;
@@ -62,18 +51,15 @@ class DBHelper {
     })
     .catch(error => {
       // if reviews couldn't be fetched from network:
-      // TODO: try to get reviews from idb
       console.log(error);
       return null; // return null to handle error, as though there are no reviews.
     });
   }
 
-
-
   static fetchByUrl(fetchUrl, callback) {
-     console.log('calling-fetchByUrl ', fetchUrl);
+    console.log('fetchByUrl', fetchUrl);
     fetch(fetchUrl).then(function(response) {
-      console.log('response-fetchByUrl ', response);
+    console.log('fetchByUrl Response', response);
       if(response.ok) {
         return response.json();
       }
@@ -214,7 +200,6 @@ class DBHelper {
    */
    static mapMarkerForRestaurant(restaurant, map) {
 
-    console.log('trying mapping',restaurant,map);
     if(restaurant.data){
       restaurant = restaurant.data;
     }
@@ -227,24 +212,4 @@ class DBHelper {
       marker.addTo(newMap);
     return marker;
   }
-
-  // /**
-  //  * Map marker for a restaurant.
-  //  */
-  // static mapMarkerForRestaurant(restaurant, map) {
-  //   console.log('trying mapping',restaurant,map);
-
-  //   const marker = new google.maps.Marker({
-  //     position: restaurant.latlng,
-  //     title: restaurant.name,
-  //     url: DBHelper.urlForRestaurant(restaurant),
-  //     map: map,
-  //     animation: google.maps.Animation.DROP}
-  //   );
-
-  //   return marker;
-  // }
-
-
-
 }
